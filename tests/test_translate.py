@@ -130,6 +130,36 @@ def test_curly_quotation_marks_are_kept():
         "‘Halt!’ he said, and didn't move."
 
 
+# Quotes and dashes glued to a word are spaced off before parsing; spaCy would
+# otherwise keep them inside the word (asked,"Did is one token).
+@pytest.mark.parametrize("glued, spaced", [
+    ('She asked,"Did I do well?"', 'She asked, "Did I do well?"'),
+    ('Mimi said to herself:"This is it."', 'Mimi said to herself: "This is it."'),
+    ('"Hi,"he said."Bye."She left.', '"Hi," he said. "Bye." She left.'),
+    ("He said“Hi.”She laughed.", "He said “Hi.” She laughed."),
+    ("It was all about--it was a way.", "It was all about -- it was a way."),
+    ("Her three- year-old said, I- I am sad.", "Her three - year-old said, I - I am sad."),
+])
+def test_glued_punctuation_is_spaced(glued, spaced):
+    from klazan.english import normalize_english
+    assert normalize_english(glued) == spaced
+
+
+@pytest.mark.parametrize("text", [
+    'He said, "Hi." She waved. ("Yes," he said.)',
+    "“Halt!” he said — and the year-old ale was gone.",
+    'An odd one: "open, never closed',
+])
+def test_spaced_punctuation_is_unchanged(text):
+    from klazan.english import normalize_english
+    assert normalize_english(text) == text
+
+
+def test_glued_quote_translates_like_spaced(translator):
+    assert translator.translate('She smiled and asked,"Did I do a good job?"') == \
+        translator.translate('She smiled and asked, "Did I do a good job?"')
+
+
 # Early Modern English is rewritten before parsing (english.normalize_english).
 @pytest.mark.parametrize("archaic, modern", [
     ("Thou art a fool, and thy beard is thine own.", "You are a fool, and your beard is your own."),

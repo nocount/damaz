@@ -29,7 +29,7 @@ uv run python -m klazan.lexicon fingerprint
 ```
 
 At the time of writing (3,058 content words: batches 1–3, with batch 3 in
-`extended.yaml`) this printed `{"lexicon": "b3ab89a9659e", "code": "dae934647d82"}`.
+`extended.yaml`) this printed `{"lexicon": "b3ab89a9659e", "code": "d55f51aeb662"}`.
 The `code` hash also changes whenever the translator changes.
 
 ## 1. Set up the checkout

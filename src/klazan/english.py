@@ -8,7 +8,8 @@ no lexicon entry of their own:
                (grammar.md §6.5: participles are the verb's PST/PROG form)
 
 It also normalizes the input text itself (``normalize_english``): curly
-apostrophes inside words, and Early Modern English (thou art -> you are).
+apostrophes inside words, quotes and dashes glued to words (asked,"Did ->
+asked, "Did), and Early Modern English (thou art -> you are).
 """
 
 from __future__ import annotations
@@ -29,6 +30,49 @@ _INNER_APOSTROPHE = re.compile(
 def normalize_apostrophes(text: str) -> str:
     """Straighten apostrophes inside words: don’t -> don't."""
     return _INNER_APOSTROPHE.sub("'", text)
+
+
+# --- Quotation marks and dashes glued to a word -----------------------------
+# spaCy keeps a quote or dash that touches a word on both sides inside that
+# word: asked,"Did -> one token 'asked,"Did', which the translator then drops
+# or passes through as English. TinyStories has thousands of these. A space is
+# put on the outer side of the mark, so text that is already spaced is unchanged.
+_CURLY_OPEN = re.compile(r"(?<=[^\s(\[“‘])“")
+_CURLY_CLOSE = re.compile(r"”(?=[A-Za-z0-9])")
+_GLUED_OPEN = re.compile(r'(?<=[,:;])"(?=[A-Za-z])')    # asked,"Did: always an opening quote
+# about--it -> about -- it;  three- year-old, I- I -> three - year-old, I - I
+_DASH_AFTER_WORD = re.compile(r"(?<=\w)--")
+_DASH_BEFORE_WORD = re.compile(r"--(?=\w)")
+_DANGLING_HYPHEN = re.compile(r"(?<=[A-Za-z])-(?= )")
+
+
+def _space_straight_quotes(line: str) -> str:
+    """Pair up the " in a line (open, close, open, ...) and put a space before
+    each opening quote and after each closing one where a word touches it. With
+    an odd count the pairing is unknown, so only the unambiguous ,"Word is fixed."""
+    if line.count('"') % 2:
+        return _GLUED_OPEN.sub(' "', line)
+    out, opening = [], True
+    for i, ch in enumerate(line):
+        if ch == '"':
+            if opening and i and not line[i - 1].isspace() and line[i - 1] not in "([":
+                out.append(" ")
+            out.append(ch)
+            if not opening and i + 1 < len(line) and line[i + 1].isalnum():
+                out.append(" ")
+            opening = not opening
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+def space_punctuation(text: str) -> str:
+    """Detach quotation marks and dashes glued to words: asked,"Did -> asked, "Did."""
+    if '"' in text:
+        text = "\n".join(_space_straight_quotes(line) for line in text.split("\n"))
+    text = _CURLY_CLOSE.sub("” ", _CURLY_OPEN.sub(" “", text))
+    text = _DASH_BEFORE_WORD.sub("-- ", _DASH_AFTER_WORD.sub(" --", text))
+    return _DANGLING_HYPHEN.sub(" -", text)
 
 
 # --- Early Modern English (thou art, he goeth) --------------------------------
@@ -133,7 +177,7 @@ def modernize_archaic(text: str) -> str:
 
 def normalize_english(text: str) -> str:
     """Everything the translator does to English before parsing it."""
-    return modernize_archaic(normalize_apostrophes(text))
+    return modernize_archaic(space_punctuation(normalize_apostrophes(text)))
 
 
 # Irregular past participles used as adjectives.

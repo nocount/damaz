@@ -696,7 +696,10 @@ the king have two-ten three axe-PL
 Before parsing, the translator normalizes its English input
 (`klazan.english.normalize_english`). Curly apostrophes inside words are
 straightened (*don’t* → *don't*), because spaCy only recognizes contractions
-spelled with `'`. Early Modern English is rewritten as modern English (*thou
+spelled with `'`. Quotation marks and dashes glued to a word are spaced off
+(*asked,"Did* → *asked, "Did*; *about--it* → *about -- it*), because spaCy
+keeps them inside the word, and the word is then dropped or left in English.
+Early Modern English is rewritten as modern English (*thou
 art* → *you are*, *he goeth* → *he goes*, *’tis* → *it is*), because spaCy
 misreads it (*thou* as a noun, *art* as the noun *art*). The table below
 describes modern English.
